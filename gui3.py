@@ -279,7 +279,6 @@ class LSystemApp:
 
         self.model = LSystemModel(cfg["axiom"], cfg["rules"], cfg["max_iter"])
         self.renderer = LSystemRenderer(cfg)
-        self._drawn_iter = -1  # ultimo layer disegnato sullo schermo (-1 = nulla)
 
         self.renderer.bind_keys({
             "Right": self.next_iter,
@@ -294,13 +293,12 @@ class LSystemApp:
     # ── rendering ──────────────────────────────────────────────────────────────
 
     def render(self) -> None:
-        """Disegno cumulativo: aggiunge layer andando avanti, ridisegna tutto andando indietro."""
-        if self._drawn_iter < 0 or self.iteration < self._drawn_iter:
-            self._full_redraw()
-        elif self.iteration > self._drawn_iter:
-            for i in range(self._drawn_iter + 1, self.iteration + 1):
-                self._draw_layer(i)
-            self._drawn_iter = self.iteration
+        """Disegna tutti i layer da N a 0: iter più complessa sotto, più semplice sopra."""
+        self.renderer.reset_drawing_turtle(self.renderer.resolve_color(self.iteration))
+        self.renderer.draw(self.model.get(self.iteration))
+        for i in range(self.iteration - 1, -1, -1):
+            self.renderer.position_drawing_turtle(self.renderer.resolve_color(i))
+            self.renderer.draw(self.model.get(i))
 
         instructions = self.model.get(self.iteration)
         self.renderer.draw_info(self.iteration, len(instructions), self.cfg["name"])
@@ -310,19 +308,6 @@ class LSystemApp:
             f"{self.cfg['title']} — iter {self.iteration}"
             + (" ▶" if self.playing else "")
         )
-
-    def _full_redraw(self) -> None:
-        """Cancella lo schermo e ridisegna tutti i layer da 0 all'iterazione corrente."""
-        self.renderer.reset_drawing_turtle(self.renderer.resolve_color(0))
-        self.renderer.draw(self.model.get(0))
-        for i in range(1, self.iteration + 1):
-            self._draw_layer(i)
-        self._drawn_iter = self.iteration
-
-    def _draw_layer(self, i: int) -> None:
-        """Aggiunge il layer i sopra i layer già disegnati."""
-        self.renderer.position_drawing_turtle(self.renderer.resolve_color(i))
-        self.renderer.draw(self.model.get(i))
 
     # ── controls ───────────────────────────────────────────────────────────────
 
@@ -351,7 +336,6 @@ class LSystemApp:
         self.renderer.screen.bgcolor(cfg["bg_color"])
         self.model = LSystemModel(cfg["axiom"], cfg["rules"], cfg["max_iter"])
         self.iteration = cfg["start_iter"]
-        self._drawn_iter = -1
         self.render()
 
     def toggle_play(self) -> None:

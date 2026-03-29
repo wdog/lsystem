@@ -3,7 +3,7 @@
 
 title    = "TEST"   # window title
 axiom    = "F"      # starting string
-angle    = 36       # turn angle in degree
+angle    = 72       # turn angle in degree
 distance = 20        # step length in pixels
 max_iter = 6        # maximum iteration reachable with →
 start_x  = 0
@@ -11,5 +11,5 @@ start_y  = -400
 start_heading = 90
 
 [rules]
-F = "FF[-FF][+FF]"   # rewriting rules: symbol = replacement
-G = ""
+F = "FG[-F[-F][+F]][+F[-F][+F]]"   # rewriting rules: symbol = replacement
+G = "F"

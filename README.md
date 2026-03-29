@@ -2,10 +2,36 @@
 
 Visualizzatore interattivo di sistemi-L (Lindenmayer Systems) con GUI turtle e configurazione TOML.
 
-## Avvio
+## Installazione con `venv` e `pip`
+
+Requisiti:
+
+- Python 3.11+ consigliato
+- Su Linux potrebbe essere necessario avere `tkinter`/Tk installato a livello di sistema per usare `turtle`
+
+Creazione ambiente virtuale e installazione dipendenze:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+Se usi Python 3.11 o superiore, il parser TOML è già incluso nella standard library.
+Con Python 3.10 o inferiore verrà installato `tomli` da `requirements.txt`.
+
+## Avvio rapido
 
 ```bash
 python gui3.py examples/fern.toml
+```
+
+Altri esempi:
+
+```bash
+python gui3.py examples/koch_curve.toml
+python gui3.py examples/sierpinski_triangle.toml
 ```
 
 ## Tasti
@@ -18,6 +44,14 @@ python gui3.py examples/fern.toml
 | `r` | reload: rilegge il file TOML e ricomincia |
 | `h` | mostra / nascondi help |
 | `q` | esci |
+
+## Struttura del progetto
+
+| Percorso | Descrizione |
+|----------|-------------|
+| `gui3.py` | applicazione principale con GUI `turtle` e caricamento configurazioni TOML |
+| `examples/` | raccolta di sistemi-L pronti da eseguire |
+| `requirements.txt` | dipendenze Python minime del progetto |
 
 ---
 
