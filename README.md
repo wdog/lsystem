@@ -207,6 +207,7 @@ Ogni iterazione viene disegnata con un colore diverso, ciclando su:
 ```
 0: white   1: cyan   2: lime     3: yellow
 4: orange  5: deepskyblue        6: violet  7: hotpink
+8: gold    9: tomato             10: springgreen  11: dodgerblue
 ```
 
 ---

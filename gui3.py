@@ -15,6 +15,7 @@ Tasti:
 """
 
 import sys
+from time import perf_counter
 
 import turtle
 
@@ -32,6 +33,10 @@ DEFAULT_PALETTE = (
     "deepskyblue",
     "violet",
     "hotpink",
+    "gold",
+    "tomato",
+    "springgreen",
+    "dodgerblue",
 )
 
 try:
@@ -110,10 +115,14 @@ class LSystemModel:
         """Restituisce la stringa dell'iterazione n, espandendo la cache se necessario."""
         while len(self._cache) <= n:
             i = len(self._cache)
+            start = perf_counter()
             s = expand_one(self._cache[-1], self._rules)
+            end = perf_counter()
+            time_elapsed = end - start
             self._cache.append(s)
-            print(f"Iter {i:>2} | len {len(s):>8}")
+            print("─" * 60)
             print(s)
+            print(f"Iter {i:>2} | len {len(s):>8} in {time_elapsed:.6f}s")
         return self._cache[n]
 
 
@@ -280,14 +289,16 @@ class LSystemApp:
         self.model = LSystemModel(cfg["axiom"], cfg["rules"], cfg["max_iter"])
         self.renderer = LSystemRenderer(cfg)
 
-        self.renderer.bind_keys({
-            "Right": self.next_iter,
-            "Left":  self.prev_iter,
-            "r":     self.reload,
-            "p":     self.toggle_play,
-            "h":     self.toggle_help,
-            "q":     self.quit,
-        })
+        self.renderer.bind_keys(
+            {
+                "Right": self.next_iter,
+                "Left": self.prev_iter,
+                "r": self.reload,
+                "p": self.toggle_play,
+                "h": self.toggle_help,
+                "q": self.quit,
+            }
+        )
         self.render()
 
     # ── rendering ──────────────────────────────────────────────────────────────
@@ -327,6 +338,7 @@ class LSystemApp:
         """Rilegge il file TOML, reinizializza il model e torna all'iterazione iniziale (tasto r)."""
         self.playing = False
         import os
+
         raw = load_config(self._cfg_path)
         cfg = parse_config(raw)
         cfg["name"] = os.path.splitext(os.path.basename(self._cfg_path))[0]
@@ -396,6 +408,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     import os
+
     cfg_path = sys.argv[1]
     cfg_name = os.path.splitext(os.path.basename(cfg_path))[0]
     raw = load_config(cfg_path)
