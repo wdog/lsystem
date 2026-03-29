@@ -5,6 +5,9 @@ axiom    = "F"            # starting string
 angle    = 90             # turn angle in degrees
 distance = 10              # step length in pixels
 max_iter = 6              # maximum iteration reachable with →
+start_x  = -300
+start_y  = 0
+start_heading = 0
 
 [rules]
 F = "F+F-F-F+F"           # rewriting rules: symbol = replacement

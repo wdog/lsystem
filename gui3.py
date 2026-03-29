@@ -36,11 +36,13 @@ except ImportError:
 
 
 def load_config(path: str) -> dict:
+    """Legge il file TOML e restituisce il dizionario grezzo."""
     with open(path, "rb") as f:
         return tomllib.load(f)
 
 
 def parse_config(cfg: dict) -> dict:
+    """Normalizza il dizionario TOML applicando i valori di default."""
     return {
         "axiom": str(cfg.get("axiom", "F")),
         "rules": dict(cfg.get("rules", {})),
@@ -51,7 +53,7 @@ def parse_config(cfg: dict) -> dict:
         "play_interval": int(cfg.get("play_interval", 800)),
         "bg_color": str(cfg.get("bg_color", "black")),
         "fg_color": str(cfg.get("fg_color", "white")),
-        "start_x": float(cfg.get("start_x", -200)),
+        "start_x": float(cfg.get("start_x", 0)),
         "start_y": float(cfg.get("start_y", 0)),
         "start_heading": float(cfg.get("start_heading", 0)),
         "title": str(cfg.get("title", "L-System")),
@@ -61,24 +63,14 @@ def parse_config(cfg: dict) -> dict:
 # ── L-System ───────────────────────────────────────────────────────────────────
 
 
-def build_l_system(axiom: str, rules: dict, n: int) -> str:
-    """
-    Costruisce la n-esima iterazione di un sistema L:
-    1) parte da `axiom`
-    2) per n cicli, sostituisce ogni carattere `c` con `rules[c]` se presente,
-       altrimenti mantiene `c`
-    3) restituisce la stringa finale per il disegno Turtle
-    """
-    current = axiom
-    print(f"{''.join(current)}")
-    for _ in range(n):
-        # Expand one generation: replace each symbol using rules,
-        # keep unchanged if missing.
-        current = "".join(rules.get(c, c) for c in current)
-        print(f"Iter {_+1:>2} | len {len(current):>8}")
-        print(f"{''.join(current)}")
+def expand_one(s: str, rules: dict) -> str:
+    """Espande una singola iterazione dalla stringa precedente."""
+    return "".join(rules.get(c, c) for c in s)
 
-    return current
+    # result = []
+    # for c in s:
+    #     result.append(rules.get(c, c))
+    # return "".join(result)
 
 
 # ── App ────────────────────────────────────────────────────────────────────────
@@ -117,12 +109,24 @@ class LSystemApp:
         self.ht.hideturtle()
         self.ht.penup()
 
+        # dedicated turtle for the top-left info label
+        self.it = turtle.Turtle()
+        self.it.speed(0)
+        self.it.hideturtle()
+        self.it.penup()
+
+        # cache lazy: parte con l'assioma, espande on-demand
+        self._cache = [cfg["axiom"]]
+        print(f"Iter  0 | len {len(cfg['axiom']):>8}")
+        print(cfg["axiom"])
+
         self._bind_keys()
         self.render()
 
     # ── rendering ──────────────────────────────────────────────────────────────
 
     def render(self):
+        """Ridisegna l'iterazione corrente: espande la cache se necessario, poi disegna."""
         self.t.reset()
         self.t.hideturtle()
         self.t.speed(0)
@@ -132,10 +136,16 @@ class LSystemApp:
         self.t.setheading(self.cfg["start_heading"])
         self.t.pendown()
 
-        instructions = build_l_system(
-            self.cfg["axiom"], self.cfg["rules"], self.iteration
-        )
-        self._draw(instructions)
+        # espande solo se necessario, partendo dall'ultima in cache
+        while len(self._cache) <= self.iteration:
+            i = len(self._cache)
+            s = expand_one(self._cache[-1], self.cfg["rules"])
+            self._cache.append(s)
+            print(f"Iter {i:>2} | len {len(s):>8}")
+            print(s)
+
+        self._draw(self._cache[self.iteration])
+        self._draw_info()
         self._draw_help()
         self.screen.update()
         self.screen.title(
@@ -143,7 +153,27 @@ class LSystemApp:
             + (" ▶" if self.playing else "")
         )
 
+    def _draw_info(self):
+        """Disegna in alto a sinistra iter/len e in basso a sinistra il nome del file."""
+        self.it.clear()
+        w = self.screen.window_width() // 2
+        h = self.screen.window_height() // 2
+        length = len(self._cache[self.iteration])
+        self.it.goto(-w + 10, h - 24)
+        self.it.color("yellow")
+        self.it.write(
+            f"ITER {self.iteration}   LEN {length}",
+            font=("Courier New", 13, "bold"),
+        )
+        self.it.goto(-w + 10, -h + 10)
+        self.it.color("cyan")
+        self.it.write(
+            self.cfg["name"],
+            font=("Courier New", 13, "bold"),
+        )
+
     def _draw_help(self):
+        """Disegna (o cancella) l'overlay con i tasti di scelta rapida."""
         self.ht.clear()
         if not self.show_help:
             return
@@ -153,11 +183,20 @@ class LSystemApp:
         y = -h + 10 + len(HELP_LINES) * 18
         for line in HELP_LINES:
             self.ht.goto(x, y)
-            self.ht.color("yellow")
+            self.ht.color("lime")
             self.ht.write(line, font=("Courier New", 12, "normal"))
             y -= 18
 
     def _draw(self, instructions: str):
+        """Interpreta la stringa L-System e disegna con la turtle.
+
+        Simboli supportati:
+          F, G  avanza di `distance`
+          +     ruota a destra di `angle`
+          -     ruota a sinistra di `angle`
+          [     salva posizione e direzione nello stack
+          ]     ripristina posizione e direzione dallo stack
+        """
         stack = []
         forward = self.t.forward
         right = self.t.right
@@ -184,41 +223,49 @@ class LSystemApp:
     # ── controls ───────────────────────────────────────────────────────────────
 
     def next_iter(self):
+        """Avanza di un'iterazione (tasto →)."""
         if self.iteration < self.cfg["max_iter"]:
             self.iteration += 1
             self.render()
 
     def prev_iter(self):
+        """Torna all'iterazione precedente (tasto ←)."""
         if self.iteration > 0:
             self.iteration -= 1
             self.render()
 
     def reset(self):
+        """Ferma il play e torna all'iterazione iniziale (tasto r)."""
         self._stop_play()
         self.iteration = self.cfg["start_iter"]
         self.render()
 
     def toggle_play(self):
+        """Avvia o ferma la riproduzione automatica (tasto p)."""
         if self.playing:
             self._stop_play()
         else:
             self._start_play()
 
     def _start_play(self):
+        """Imposta il flag playing e avvia il timer ricorsivo."""
         self.playing = True
         self.render()
         self._schedule_next()
 
     def toggle_help(self):
+        """Mostra o nasconde l'overlay di aiuto (tasto h)."""
         self.show_help = not self.show_help
         self._draw_help()
         self.screen.update()
 
     def _stop_play(self):
+        """Ferma la riproduzione automatica."""
         self.playing = False
         self.render()
 
     def _schedule_next(self):
+        """Pianifica il prossimo step di play tramite ontimer (non blocca la UI)."""
 
         def step():
             if not self.playing:
@@ -233,11 +280,13 @@ class LSystemApp:
         self.screen.ontimer(step, self.cfg["play_interval"])
 
     def quit(self):
+        """Chiude la finestra (tasto q)."""
         self.screen.bye()
 
     # ── key bindings ───────────────────────────────────────────────────────────
 
     def _bind_keys(self):
+        """Registra tutti i tasti di scelta rapida sulla finestra turtle."""
         s = self.screen
         s.listen()
         s.onkey(self.next_iter, "Right")
@@ -250,6 +299,7 @@ class LSystemApp:
     # ── run ────────────────────────────────────────────────────────────────────
 
     def run(self):
+        """Avvia il loop principale della GUI."""
         turtle.mainloop()
 
 
@@ -260,7 +310,11 @@ if __name__ == "__main__":
         print(__doc__)
         sys.exit(1)
 
-    raw = load_config(sys.argv[1])
+    import os
+    cfg_path = sys.argv[1]
+    cfg_name = os.path.splitext(os.path.basename(cfg_path))[0]
+    raw = load_config(cfg_path)
     cfg = parse_config(raw)
+    cfg["name"] = cfg_name
     app = LSystemApp(cfg)
     app.run()

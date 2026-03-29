@@ -6,7 +6,7 @@ angle    = 22       # turn angle in degrees
 distance = 5        # step length in pixels
 max_iter = 6        # maximum iteration reachable with →
 start_x  = -50
-start_y  = -300
+start_y  = -400
 start_heading = 90
 
 [rules]
