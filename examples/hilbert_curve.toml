@@ -1,0 +1,14 @@
+# L-System configuration
+
+title    = "Hilbert Curve"  # window title
+axiom    = "A"              # starting string
+angle    = 90               # turn angle in degrees
+distance = 8                # step length in pixels
+max_iter = 6                # maximum iteration reachable with →
+start_x  = -256
+start_y  = -256
+start_heading = 0
+
+[rules]
+A = "+BF-AFA-FB+"   # rewriting rules: symbol = replacement
+B = "-AF+BFB+FA-"

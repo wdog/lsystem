@@ -1,0 +1,14 @@
+# L-System configuration
+
+title    = "Fern"   # window title
+axiom    = "X"      # starting string
+angle    = 22       # turn angle in degrees
+distance = 5        # step length in pixels
+max_iter = 6        # maximum iteration reachable with →
+start_x  = -50
+start_y  = -300
+start_heading = 90
+
+[rules]
+X = "F+[[X]-X]-F[-FX]+X"   # rewriting rules: symbol = replacement
+F = "FF"

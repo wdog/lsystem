@@ -1,0 +1,14 @@
+# L-System configuration
+
+title    = "Gosper Curve"  # window title
+axiom    = "F"             # starting string
+angle    = 60              # turn angle in degrees
+distance = 6               # step length in pixels
+max_iter = 5               # maximum iteration reachable with →
+start_x  = -100
+start_y  = 100
+start_heading = 0
+
+[rules]
+F = "F-G--G+F++FF+G-"   # rewriting rules: symbol = replacement
+G = "+F-GG--G-F++F+G"

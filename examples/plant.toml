@@ -1,0 +1,14 @@
+# L-System configuration
+
+title    = "Plant"   # window title
+axiom    = "X"       # starting string
+angle    = 25        # turn angle in degrees
+distance = 6         # step length in pixels
+max_iter = 6         # maximum iteration reachable with →
+start_x  = -50
+start_y  = -300
+start_heading = 90
+
+[rules]
+X = "F+[[X]-X]-F[-FX]+X"   # rewriting rules: symbol = replacement
+F = "FF"

@@ -1,0 +1,14 @@
+# L-System configuration
+
+title    = "Sierpinski Triangle"  # window title
+axiom    = "F-G-G"                # starting string
+angle    = 120                    # turn angle in degrees
+distance = 100                      # step length in pixels
+max_iter = 7                      # maximum iteration reachable with →
+start_x  = -300
+start_y  = -150
+start_heading = 0
+
+[rules]
+F = "F-G+F+G-F"   # rewriting rules: symbol = replacement
+G = "GG"
