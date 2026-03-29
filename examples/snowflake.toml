@@ -3,7 +3,7 @@
 title    = "Koch Snowflake"  # window title
 axiom    = "F++F++F"         # starting string
 angle    = 60                # turn angle in degrees
-distance = 8                 # step length in pixels
+distance = 4                 # step length in pixels
 max_iter = 5                 # maximum iteration reachable with →
 start_x  = -250
 start_y  = -150

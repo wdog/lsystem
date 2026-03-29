@@ -225,7 +225,7 @@ class LSystemRenderer:
         self.it.goto(-w + 10, h - 24)
         self.it.color("yellow")
         self.it.write(
-            f"ITER {iteration}   LEN {length}",
+            f"ITER {iteration}/{self._cfg['max_iter']}   LEN {length}",
             font=("Courier New", 13, "bold"),
         )
         self.it.goto(-w + 10, -h + 10)

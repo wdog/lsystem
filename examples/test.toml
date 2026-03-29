@@ -2,13 +2,14 @@
 # L-System configuration
 
 title    = "TEST"   # window title
-axiom    = "F"      # starting string
-angle    = 137       # turn angle in degree
+axiom    = "X"      # starting string
+angle    = 45       # turn angle in degree
 distance = 5        # step length in pixels
-max_iter = 10        # maximum iteration reachable with →
+max_iter = 5        # maximum iteration reachable with →
 start_x  = 0
-start_y  = 0
+start_y  = -400
 start_heading = 90
 
 [rules]
-F = "FF-F"
+X = "F[+X]F[-X]+X"
+F = "FF"
