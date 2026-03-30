@@ -11,6 +11,9 @@ Tasti:
   Left       iterazione precedente
   r          reset (torna all'iterazione iniziale)
   h          mostra/nascondi help a schermo
+  c          abilita/disabilita colori
+  o          mostra/nascondi layer precedenti
+  t          mostra/nascondi cursore turtle
   q          esci
 """
 
@@ -95,8 +98,12 @@ def expand_one(s: str, rules: dict) -> str:
 HELP_LINES = [
     "  ←  / →   prev / next",
     "  p        play / pause",
+    "  +  / -   faster / slower",
     "  r        reload",
     "  h        toggle help",
+    "  c        toggle colors",
+    "  o        toggle overlay",
+    "  t        toggle cursor",
     "  q        quit",
 ]
 
@@ -217,17 +224,19 @@ class LSystemRenderer:
                 self.t.setheading(heading)
                 self.t.pendown()
 
-    def draw_info(self, iteration: int, length: int, name: str) -> None:
+    def draw_info(self, iteration: int, length: int, name: str, play_interval=None) -> None:
         """Disegna in alto a sinistra iter/len e in basso a sinistra il nome del file."""
         self.it.clear()
         w = self.screen.window_width() // 2
         h = self.screen.window_height() // 2
         self.it.goto(-w + 10, h - 24)
         self.it.color("yellow")
+        interval_str = f"   {play_interval}ms/step" if play_interval is not None else ""
         self.it.write(
-            f"ITER {iteration}/{self._cfg['max_iter']}   LEN {length}",
+            f"ITER {iteration}/{self._cfg['max_iter']}   LEN {length}{interval_str}",
             font=("Courier New", 13, "bold"),
         )
+
         self.it.goto(-w + 10, -h + 10)
         self.it.color("cyan")
         self.it.write(
@@ -249,6 +258,14 @@ class LSystemRenderer:
             self.ht.color("lime")
             self.ht.write(line, font=("Courier New", 12, "normal"))
             y -= 18
+
+    def show_cursor(self, show: bool) -> None:
+        """Mostra o nasconde l'icona della turtle alla posizione finale."""
+        if show:
+            self.t.shape("arrow")
+            self.t.showturtle()
+        else:
+            self.t.hideturtle()
 
     def update(self) -> None:
         """Aggiorna la finestra (flush del double buffer)."""
@@ -286,6 +303,11 @@ class LSystemApp:
         self.playing = False
         self.show_help = True
 
+        self.use_colors = True
+        self.show_overlay = True
+        self.show_cursor = False
+        self.play_interval = cfg["play_interval"]
+
         self.model = LSystemModel(cfg["axiom"], cfg["rules"], cfg["max_iter"])
         self.renderer = LSystemRenderer(cfg)
 
@@ -296,6 +318,11 @@ class LSystemApp:
                 "r": self.reload,
                 "p": self.toggle_play,
                 "h": self.toggle_help,
+                "c": self.toggle_colors,
+                "o": self.toggle_overlay,
+                "plus": self.speed_up,
+                "minus": self.slow_down,
+                "t": self.toggle_cursor,
                 "q": self.quit,
             }
         )
@@ -305,14 +332,23 @@ class LSystemApp:
 
     def render(self) -> None:
         """Disegna tutti i layer da N a 0: iter più complessa sotto, più semplice sopra."""
-        self.renderer.reset_drawing_turtle(self.renderer.resolve_color(self.iteration))
+        def color(i):
+            return self.renderer.resolve_color(i) if self.use_colors else self.cfg["fg_color"]
+
+        self.renderer.reset_drawing_turtle(color(self.iteration))
         self.renderer.draw(self.model.get(self.iteration))
-        for i in range(self.iteration - 1, -1, -1):
-            self.renderer.position_drawing_turtle(self.renderer.resolve_color(i))
-            self.renderer.draw(self.model.get(i))
+        if self.show_overlay:
+            for i in range(self.iteration - 1, -1, -1):
+                self.renderer.position_drawing_turtle(color(i))
+                self.renderer.draw(self.model.get(i))
+
+        self.renderer.show_cursor(self.show_cursor)
 
         instructions = self.model.get(self.iteration)
-        self.renderer.draw_info(self.iteration, len(instructions), self.cfg["name"])
+        self.renderer.draw_info(
+            self.iteration, len(instructions), self.cfg["name"],
+            self.play_interval,
+        )
         self.renderer.draw_help(self.show_help)
         self.renderer.update()
         self.renderer.set_title(
@@ -346,6 +382,7 @@ class LSystemApp:
         self.renderer._cfg = cfg
         self.renderer._colors = cfg["colors"]
         self.renderer.screen.bgcolor(cfg["bg_color"])
+        self.play_interval = cfg["play_interval"]
         self.model = LSystemModel(cfg["axiom"], cfg["rules"], cfg["max_iter"])
         self.iteration = cfg["start_iter"]
         self.render()
@@ -369,6 +406,41 @@ class LSystemApp:
         self.renderer.draw_help(self.show_help)
         self.renderer.update()
 
+    def speed_up(self) -> None:
+        """Dimezza l'intervallo di play (tasto +), minimo 50 ms."""
+        self.play_interval = max(50, self.play_interval // 2)
+        self._refresh_info()
+
+    def slow_down(self) -> None:
+        """Raddoppia l'intervallo di play (tasto -), massimo 8000 ms."""
+        self.play_interval = min(8000, self.play_interval * 2)
+        self._refresh_info()
+
+    def _refresh_info(self) -> None:
+        """Ridisegna solo la riga info senza ridisegnare il frattale."""
+        instructions = self.model.get(self.iteration)
+        self.renderer.draw_info(
+            self.iteration, len(instructions), self.cfg["name"],
+            self.play_interval,
+        )
+        self.renderer.update()
+
+    def toggle_cursor(self) -> None:
+        """Mostra o nasconde l'icona della turtle alla posizione finale (tasto t)."""
+        self.show_cursor = not self.show_cursor
+        self.renderer.show_cursor(self.show_cursor)
+        self.renderer.update()
+
+    def toggle_colors(self) -> None:
+        """Abilita o disabilita i colori per iterazione (tasto c)."""
+        self.use_colors = not self.use_colors
+        self.render()
+
+    def toggle_overlay(self) -> None:
+        """Mostra o nasconde i layer delle iterazioni precedenti (tasto o)."""
+        self.show_overlay = not self.show_overlay
+        self.render()
+
     def _stop_play(self) -> None:
         """Ferma la riproduzione automatica."""
         self.playing = False
@@ -383,11 +455,11 @@ class LSystemApp:
             if self.iteration < self.cfg["max_iter"]:
                 self.iteration += 1
                 self.render()
-                self.renderer.ontimer(step, self.cfg["play_interval"])
+                self.renderer.ontimer(step, self.play_interval)
             else:
                 self._stop_play()
 
-        self.renderer.ontimer(step, self.cfg["play_interval"])
+        self.renderer.ontimer(step, self.play_interval)
 
     def quit(self) -> None:
         """Chiude la finestra (tasto q)."""
