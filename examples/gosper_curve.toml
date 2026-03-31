@@ -5,8 +5,8 @@ axiom    = "F"             # starting string
 angle    = 60              # turn angle in degrees
 distance = 6               # step length in pixels
 max_iter = 5               # maximum iteration reachable with →
-start_x  = -100
-start_y  = 100
+start_x  = 400
+start_y  = -300
 start_heading = 0
 
 [rules]
